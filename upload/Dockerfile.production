@@ -1,0 +1,6 @@
+FROM php:fpm
+RUN docker-php-ext-install mysqli
+COPY app/upload.php /var/www/html/upload/upload.php
+RUN mkdir -p /var/www/html/upload/images
+RUN chown 101:101 /var/www/html/upload/images
+USER 101

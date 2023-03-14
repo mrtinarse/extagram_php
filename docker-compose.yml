@@ -1,0 +1,83 @@
+version: '3'
+
+services:
+
+  proxy:
+    build: ./proxy
+    ports:
+      - "443:443"
+    configs:
+      - source: proxy_conf
+        target: /etc/nginx/conf.d/default.conf
+    secrets:
+      - source: site_key
+        target: /run/secrets/site_key
+      - source: site_pem
+        target: /run/secrets/site_pem
+    depends_on:
+      - home
+      - upload
+      - static
+
+  home:
+    build: ./home
+    volumes:
+      - ./app/extagram.php:/var/www/html/extagram.php
+    depends_on:
+      - database
+
+  upload:
+    build: ./upload
+    volumes:
+      - ./app/upload.php:/var/www/html/upload.php
+      - upload_images:/var/www/html/upload/images
+    depends_on:
+      - database
+
+  static:
+    build: ./static
+    volumes:
+      - ./app/static:/var/www/html/static
+    configs:
+      - source: martin
+        target: /etc/nginx/conf.d/default.conf
+    depends_on:
+      - database
+
+  database:
+    build: ./database
+    environment:
+      MYSQL_DATABASE: mydb
+      MYSQL_USER: myuser
+      MYSQL_PASSWORD: mypass123
+      MYSQL_ROOT_PASSWORD: pass123
+    volumes:
+      - ./database/schema.sql:/docker-entrypoint-initdb.d/schema.sql
+      - db_data:/var/lib/mysql
+    
+  storage:
+    build: ./storage
+    configs:
+      - source: storage_conf
+        target: /etc/nginx/conf.d/default.conf
+    volumes:
+      - ./app/upload.php:/var/www/html/upload.php
+      - upload_images:/var/www/html/upload/images
+
+configs:
+  proxy_conf:
+    file: ./proxy/nginx.conf
+  martin:
+    file: ./static/nginx.conf
+  storage_conf:
+    file: ./storage/nginx.conf
+
+secrets:
+  site_key:
+    file: ./proxy/site.key
+  site_pem:
+    file: ./proxy/site.pem
+
+volumes:
+  db_data:
+  upload_images:
